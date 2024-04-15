@@ -1,0 +1,28 @@
+﻿Taxon,Phytophage,Predator,Pollinator,Decomposer/Scavenger,Haematophage,Fungivore,Parasite / parasitoid
+Lepidoptera,0,0,1,0,0,0,0
+Hymenoptera (Wasps),0,1,1,0,0,0,1
+Formicidae,0,1,0,1,0,0,0
+Anthophila,0,0,1,0,0,0,0
+Blattaria,0,0,0,1,0,0,0
+Isoptera,0,0,0,1,0,0,0
+Coleoptera (Other),1,1,0,1,0,1,0
+Staphylinidae,0,1,0,0,0,0,0
+Thysanoptera,1,0,1,0,0,0,0
+Orthoptera,1,0,0,0,0,0,0
+Auchenorrhyncha,1,0,0,0,0,0,0
+Sternorrhyncha,1,0,0,0,0,0,0
+Reduviidae,0,1,0,0,0,0,0
+Heteroptera (Other),1,0,0,0,0,0,0
+Cecidomyiidae,1,0,0,0,0,0,0
+Culidicae,0,0,0,0,1,0,0
+Ceratopogonidae,0,0,0,0,1,0,0
+Sciaroidea,1,0,0,1,0,1,0
+Micropezidae,1,0,0,1,0,1,0
+Syrphidae,0,1,1,1,0,0,0
+Dolichopodidae,0,1,0,0,0,0,0
+Phoridae,0,1,0,1,0,0,1
+Calyptrates,1,1,0,1,1,0,1
+Stratiomyidae,1,0,0,1,0,1,0
+Dermaptera,0,1,0,1,0,0,0
+Mantodea,0,1,0,0,0,0,0
+Odonata,0,1,0,0,0,0,0

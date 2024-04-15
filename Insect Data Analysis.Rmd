@@ -1,0 +1,509 @@
+---
+title: "Insect Data"
+author: "A0252768R"
+date: "2024-03-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r Data Handling}
+
+library(vegan)
+library(ggplot2)
+library(cowplot)
+library(reshape2)
+library(dplyr)
+library(viridis)
+
+dfInsect <- read.csv("insect_site_x_taxon_matrix.csv")
+
+str(dfInsect)
+
+Sample <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
+
+Locality <- c(rep("Along Lower Kent Ridge Road", 3), 
+             rep("Multi-purpose Field", 2),
+             rep("Along Kent Ridge Road", 3),
+             rep("Multi-purpose Field", 3),
+             rep("Behind RVRC", 2),
+             rep("Along Lower Kent Ridge Road", 3))
+
+start_date <- c(rep("06/03/2024", 8),
+                rep("14/02/2024", 3),
+                rep("06/03/2024", 2),
+                rep("14/02/2024", 3))
+
+lat <- c("1.2985263",
+         "1.2979718",
+         "1.297965",
+         "1.2973333",
+         "1.2972790",
+         "1.294223",
+         "1.294149",
+         "1.294101",
+         "1.297601",
+         "1.2973045",
+         "1.297456",
+         "1.297472",
+         "1.297315",
+         "1.297922",
+         "1.298058",
+         "1.2983250")
+
+long <- c("103.7768360",
+          "103.7773849",
+          "103.777366",
+          "103.7793000",
+          "103.7794398",
+          "103.778188",
+          "103.778245",
+          "103.778361",
+          "103.778745",
+          "103.7794867",
+          "103.779013",
+          "103.776222",
+          "103.776345",
+          "103.777374",
+          "103.777200",
+          "103.7769290")
+
+hab_type <- c(rep("Closed canopy managed vegetation", 3), 
+             rep("Open vegetated space", 2),
+             rep("Closed canopy unmanaged vegetation", 3),
+             rep("Open vegetated space", 3),
+             rep("Closed canopy unmanaged vegetation", 2),
+             rep("Closed canopy managed vegetation", 3))
+
+Location.dat <- cbind("Sample" = Sample, "Locality" = Locality,
+                      "Habitat Type" = hab_type, "Date" = start_date,
+                      "Latitude" = lat, "Longitude" = long)
+
+```
+```{r Alpha Diversity}
+Shannon_H <- diversity(dfInsect[0:16,-1], index = "shannon")
+
+#Simpson_D <- diversity(dfInsect[0:16,-1], index = "simpson")
+
+richness <- specnumber(dfInsect)
+
+pielou_J <- Shannon_H/log(richness)
+
+#Alpha <- cbind(Location.dat, shannon = Shannon_H,
+#               simpson = Simpson_D, pielou = pielou_J,
+#               taxonrich= richness)
+
+Alpha <- cbind(Location.dat, shannon = Shannon_H,
+               pielou = pielou_J)
+
+Alpha <- as.data.frame(Alpha)
+
+Alpha$shannon <- as.numeric(Alpha$shannon)
+#Alpha$simpson <- as.numeric(Alpha$simpson)
+Alpha$pielou <- as.numeric(Alpha$pielou)
+#Alpha$taxonrich <- as.integer(Alpha$taxonrich)
+
+Alpha$Sample <- factor(Alpha$Sample, levels = c("1", "2", "3", "4",
+                                                "5", "6", "7", "8",
+                                                "9", "10", "11", "12",
+                                                "13", "14", "15", "16")) 
+
+color_palette <- c("#FF0000","#00FF00","#4318a1","#008000",
+                   "#FF00FF","#00FFFF","#FFA500","#800080",
+                   "#0000FF","#008080","#800000","#808000",
+                   "#FF4500","#45241c","#C0C0C0","#000000")
+
+Alpha$hab <- ifelse(Alpha$`Habitat Type` == "Closed canopy managed vegetation", "Cm",
+                    ifelse(Alpha$`Habitat Type` == "Closed canopy unmanaged vegetation", "Cu", "Ov"))
+
+Alpha$loc <- ifelse(Alpha$Locality == "Along Kent Ridge Road", "Ak",
+                    ifelse(Alpha$Locality == "Along Lower Kent Ridge Road", "Al",
+                           ifelse(Alpha$Locality == "Behind RVRC", "Br", "Mf")))
+
+plot.shan <- ggplot(Alpha, aes(x = loc, y = shannon)) +
+  geom_boxplot(aes(fill = loc), alpha = 0.5) +
+  geom_point(aes(colour = Sample), 
+             position = position_jitter(width = .2, height = 0, seed = 2251),
+             size = 2, alpha = 0.75) +
+  scale_colour_manual(values = color_palette) +
+  labs(tag = "(a)",
+       y = "Shannon's Index (H')",
+       x = "Site") +
+  theme_bw(base_size = 12) +
+  theme(axis.title = element_text(size = 14),
+        axis.text = element_text(size = 12),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        legend.position = "bottom",
+        panel.border = element_blank(),
+        axis.line = element_line(colour = "black"),
+        axis.ticks = element_line(),
+        plot.title = element_text(size = 16, hjust = 0.5))+
+  scale_y_continuous(limits = c(1.9,2.4), breaks = seq(1.9, 2.4, by = 0.05))
+
+plot.shan2 <- ggplot(Alpha, aes(x = Alpha$hab, y = shannon)) +
+  geom_boxplot(aes(fill = Alpha$hab), alpha = 0.5, outlier.shape = NA) +
+  geom_point(aes(colour = Sample), 
+             position = position_jitter(width = .2, height = 0, seed = 2251),
+             size = 2, alpha = 0.75) +
+  scale_colour_manual(values = color_palette) +
+    labs(tag = "(b)",
+       y = "Shannon's Index (H')",
+       x = "Habitat Type") +
+  theme_bw(base_size = 12) +
+  theme(axis.title = element_text(size = 14),
+        axis.text = element_text(size = 12),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12),
+        legend.position = "bottom",
+        panel.border = element_blank(),
+        axis.line = element_line(colour = "black"),
+        axis.ticks = element_line(),
+        plot.title = element_text(size = 16, hjust = 0.5)) +
+  scale_y_continuous(limits = c(1.9,2.4), breaks = seq(1.9, 2.4, by = 0.05))
+
+plot.pielou <- ggplot(Alpha, aes(x = Locality, y = pielou, color = Sample)) +
+  geom_point(position = position_jitter(width = .2, height = 0, seed = 2251),
+             size = 3, alpha = 0.75) +
+  scale_colour_manual(values = color_palette) +
+  ylab("Pielou's Evenness") +
+  xlab("") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.4)) +
+  scale_y_continuous(limits = c(0.68,0.9), breaks = seq(0.68, 0.9, by = 0.02))
+
+legend <- get_legend(plot.pielou + theme(legend.box.margin = margin(0, 0, 0, 12)))
+
+p1 <- plot_grid(plot.shan + theme(legend.position ="none"),
+                plot.shan2 + theme(legend.position ="none"),
+                ncol = 2, align = "v")
+
+p2 <- plot_grid(p1, legend, ncol = 2, rel_widths = c(3.5,0.4))
+
+#psite <- plot_grid(plot.shan + theme(legend.position ="none"), legend, ncol = 2, rel_widths = c(2,0.4))
+
+#phab <- plot_grid(plot.shan2 + theme(legend.position ="none"), legend, ncol = 2, rel_widths = c(2,0.4))
+
+#psite
+
+#phab
+
+p2
+
+```
+
+```{r Trophic Guild}
+
+dfSitexTroph <- read.csv("sitextroph.csv")
+dfSitexTroph1 <- melt(dfSitexTroph)
+
+dfSitexTroph1 <- dfSitexTroph1 %>%
+  group_by(Site) %>%
+  mutate(percentage = value / sum(value) * 100)
+
+dfSitexTroph1 <- dfSitexTroph1 %>%
+  group_by(variable) %>%
+  arrange(variable, desc(Site)) %>% 
+  mutate(lab_ypos = cumsum(percentage) - 0.5 * percentage)
+
+dfSitexTroph1$Site <- as.factor(dfSitexTroph1$Site)
+
+dfSitexTroph1$hab <- ifelse(dfSitexTroph1$Site == "Closed canopy managed vegetation","Cm",
+                            ifelse(dfSitexTroph1$Site == "Closed canopy unmanaged vegetation", "Cu", "Ov"))
+
+dfSitexTroph1$'Functional Guild' <- ifelse(dfSitexTroph1$variable == "Phytophage", "Phytophage",
+                                           ifelse(dfSitexTroph1$variable == "Predator", "Predator",
+                                                  ifelse(dfSitexTroph1$variable == "Pollinator", "Pollinator",
+                                                         ifelse(dfSitexTroph1$variable == "Decomposer.Scavenger", "Decomposer/Scavenger",
+                                                                ifelse(dfSitexTroph1$variable == "Haematophage", "Haematophage",
+                                                                       ifelse(dfSitexTroph1$variable == "Fungivore", "Fungivore", "Parasite/Parasitoid"))))))
+
+dfSitexTroph1$'Functional Guild' <- factor(dfSitexTroph1$'Functional Guild',
+                                           levels = c("Phytophage","Predator","Pollinator","Decomposer/Scavenger",
+                                                      "Haematophage","Fungivore","Parasite/Parasitoid"))
+
+p3 <- ggplot(dfSitexTroph1, aes(x = hab, y = percentage)) +
+  geom_col(width = 0.7, aes(fill = dfSitexTroph1$'Functional Guild')) +
+  scale_fill_viridis_d(option = "magma", begin = 0.2, end = 0.8) +
+  ylab("Percentages") + 
+  xlab("Habitat Type") +
+  labs(fill = "Functional Guild")+
+  theme_bw(base_size = 12) +
+  theme(axis.title = element_text(size = 14),
+        axis.text = element_text(size = 12),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 8),
+        legend.position = "bottom",
+        panel.border = element_blank(),
+        axis.line = element_line(colour = "black"),
+        axis.ticks = element_line(),
+        plot.title = element_text(size = 16, hjust = 0.5))
+
+p3
+```
+
+```{r Exports, eval=FALSE, include=FALSE}
+
+#ggsave("shan_simp.jpg", p2, dpi = 300, width = 6, height = 4.2, units = "in")
+
+#ggsave("shan_simp2.jpg", p4, dpi = 300, width = 6, height = 4.2, units = "in")
+
+ggsave("shanxsite.jpg", psite, dpi = 300, width = 6, height = 4.1, units = "in")
+
+ggsave("shanxhab.jpg", phab, dpi = 300, width = 6, height = 4.1, units = "in")
+
+ggsave("shanplots.jpg", p2, dpi = 300, width = 8, height = 4.1, units = "in")
+
+ggsave("plot2.jpg", p3, dpi = 300, width = 6, height = 4.1, units = "in")
+
+#ggsave("bray_plot.jpg", bray.plot, dpi = 300, width = 6, height = 4, units = "in")
+
+#ggsave("jaccard_plot.jpg", jaccard.plot, dpi = 300, width = 6, height = 4, units = "in")
+
+#ggsave("PCoA_Bray.jpg", pcoa.bray.plot, dpi = 300, width = 6, height = 4.5, units = "in")
+
+write.csv(Alpha, "Alpha Data.csv", row.names = FALSE)
+
+#write.csv(as.matrix(bray), "Bray-Curtis Matrix.csv", row.names = TRUE)
+
+#write.csv(as.matrix(jaccard), "Jaccard Matrix.csv", row.names = TRUE)
+
+```
+
+```{r eval=FALSE, include=FALSE}
+
+#plot.simp <- ggplot(Alpha, aes(x = Locality, y = simpson)) +
+#  geom_boxplot(aes(fill = Locality), alpha = 0.5, outlier.shape = NA) +
+#  geom_point(aes(colour = Sample), 
+#             position = position_jitter(width = .2, height = 0, seed = 1232251),
+#             size = 2, alpha = 0.75) +
+#  scale_colour_manual(values = color_palette) +
+#  ylab("Simpson's Index of Diversity (1-D)") + 
+#  xlab("") +
+#  theme_bw() +
+#  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.4)) +
+#  scale_y_continuous(limits = c(0.78,0.89), breaks = seq(0.78, 0.89, by = 0.01))
+
+#plot.rich <-ggplot(Alpha, aes(x = Locality, y = taxonrich, color = Sample)) +
+#  geom_point(position = position_jitter(width = .2, height = 0, seed = 2251), size = 3, alpha = 0.75) +
+#  scale_colour_manual(values = color_palette) +
+#  ylab("Taxonomic Richness") +
+#  xlab("") +
+#  theme_bw() +
+#  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.4)) + 
+#  scale_y_continuous(limits = c(12,18))
+
+#plot.simp2 <- ggplot(Alpha, aes(x = Alpha[,3], y = simpson)) +
+#  geom_boxplot(aes(fill = Alpha[,3]), alpha = 0.5, outlier.shape = NA) +
+#  geom_point(aes(colour = Sample), 
+#             position = position_jitter(width = .2, height = 0, seed = 1232251),
+#             size = 2, alpha = 0.75) +
+#  scale_colour_manual(values = color_palette) +
+#  ylab("Simpson's Index of Diversity (1-D)") + 
+#  xlab("") +
+#  theme_bw() +
+#  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.4), axis.title.y = element_text(size = 8)) +
+#  scale_y_continuous(limits = c(0.78,0.89), breaks = seq(0.78, 0.89, by = 0.01))
+
+#p1 <- plot_grid(plot.shan + theme(legend.position = "none"),
+#                plot.simp + theme(legend.position = "none"),
+#                ncol = 2, align = "v")
+
+#p2 <- plot_grid(plot.rich + theme(legend.position = "none"),
+#                plot.pielou + theme(legend.position = "none"),
+#                ncol = 2, align = "v")
+
+#p2 <- plot_grid(p1, legend, ncol = 2, rel_widths = c(2, 0.4))
+
+#p3 <- plot_grid(plot.shan2 + theme(legend.position = "none"),
+#                plot.simp2 + theme(legend.position = "none"),
+#                ncol = 2, align = "v")
+
+#p4 <- plot_grid(p3, legend, ncol = 2, rel_widths = c(2, 0.4))
+
+#p4
+
+#p4 <- plot_grid(p2, legend, ncol = 2, rel_widths = c(2, 0.4))
+
+```
+
+```{r Beta Diversity, eval=FALSE, include=FALSE}
+
+insectMatrix <- as.matrix(dfInsect[,-1])
+
+bray <- vegdist(insectMatrix, "bray", diag = TRUE)
+
+bray_df <- melt(as.data.frame(as.matrix(bray)))
+
+bray_df$y <- as.factor(c(rep(1:16, length.out = 256)))
+
+bray_df$value_round <- round(bray_df$value, 2)
+
+bray.plot <- ggplot(bray_df, aes(variable, y, fill = value_round)) +
+  geom_tile() +
+  coord_fixed() +
+  geom_text(aes(label = value_round), color = "black", size = 2) +
+  scale_fill_gradient(low = "white", high = "steelblue") +  # Adjust color scale as needed
+  labs(x = "Sample", y = "Sample", fill = "Dissimilarity", title = "Bray-Curtis's Dissimilarity Index") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5)) 
+
+#jaccard <- vegdist(insectMatrix, "jaccard", diag = TRUE)
+
+#jaccard_df <- melt(as.data.frame(as.matrix(jaccard)))
+
+#jaccard_df$y <- as.factor(c(rep(1:16, length.out = 256)))
+
+#jaccard_df$value_round <- round(jaccard_df$value, 2)
+
+#jaccard.plot <- ggplot(jaccard_df, aes(variable, y, fill = value_round)) +
+#  geom_tile() +
+#  coord_fixed() +
+#  geom_text(aes(label = value_round), color = "black", size = 2) +
+#  scale_fill_gradient(low = "white", high = "steelblue") +  # Adjust color scale as needed
+#  labs(x = "Sample", y = "Sample", fill = "Dissimilarity", title = "Jaccard's Dissimilarity Index") +
+#  theme_minimal() +
+#  theme(plot.title = element_text(hjust = 0.5)) 
+
+bray.plot
+
+#jaccard.plot
+
+```
+
+```{r PCoA Plots, eval=FALSE, include=FALSE}
+
+# calculate principal coordinates analysis (Bray-Curtis)
+pcoa.bray <- cmdscale(bray, k = 2, eig = T)
+
+# extract axis positions for each site from cmdscale object and create a dataframe for plotting
+pcoa.bray.plotting <- as.data.frame(pcoa.bray$points)
+colnames(pcoa.bray.plotting) <- c("axis_1", "axis_2")
+pcoa.bray.plotting$site <- rownames(pcoa.bray.plotting)
+pcoa.bray.plotting$site <- factor(pcoa.bray.plotting$site, levels = c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"))
+
+# calculate the proportion of variance in the data which is explained by the first two PCoA axes
+pcoa.bray$eig[1]/(sum(pcoa.bray$eig))
+pcoa.bray$eig[2]/(sum(pcoa.bray$eig))
+
+pcoa.bray.plotting$hab_type <- Alpha$`Habitat Type`
+
+pcoa.bray.plot <- ggplot(pcoa.bray.plotting, aes(x = axis_1, y = axis_2, colour = site)) +
+  geom_point(size = 3, alpha = 0.75) +
+  scale_colour_manual(values = color_palette) +
+  theme_bw() + 
+  xlab("PCoA 1 (35.6%)") +
+  ylab("PCoA 2 (17.0%)") +
+  annotate(geom = 'text', label = 'Bray-Curtis', x = -Inf, y = -Inf, hjust = -0.15, vjust = -1)+
+  labs(color = "Sample")
+
+pcoa.bray.plot2 <- ggplot(pcoa.bray.plotting, aes(x = axis_1, y = axis_2, colour = hab_type, label = site)) +
+  geom_point(size = 3, alpha = 0.75) +
+  geom_text(size = 3, alpha = 0.75, nudge_y = 0.02) +
+  #scale_colour_manual(values = color_palette) +
+  scale_colour_viridis_d(option = "magma", begin = 0.2, end = 0.8) +
+  theme_bw() + 
+  xlab("PCoA 1 (35.6%)") +
+  ylab("PCoA 2 (17.0%)") +
+  annotate(geom = 'text', label = 'Bray-Curtis', x = -Inf, y = -Inf, hjust = -0.15, vjust = -1)+
+  labs(color = "Habitat Type")
+
+#pcoa.jaccard <- cmdscale(jaccard, k = 2, eig = T)
+
+#pcoa.jaccard.plotting <- as.data.frame(pcoa.jaccard$points)
+#colnames(pcoa.jaccard.plotting) <- c("axis_1", "axis_2")
+#pcoa.jaccard.plotting$site <- rownames(pcoa.jaccard.plotting)
+#pcoa.jaccard.plotting$site <- factor(pcoa.jaccard.plotting$site, levels = c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"))
+
+#pcoa.jaccard$eig[1]/(sum(pcoa.jaccard$eig))
+#pcoa.jaccard$eig[2]/(sum(pcoa.jaccard$eig))
+
+#pcoa.jaccard.plot <- ggplot(pcoa.jaccard.plotting, aes(x = axis_1, y = axis_2, colour = site)) +
+#  geom_point(size = 3, alpha = 0.75) +
+#  scale_colour_manual(values = color_palette) +
+#  theme_bw() + 
+#  xlab("PCoA 1 (24.8%)") +
+#  ylab("PCoA 2 (14.3%)") +
+#  annotate(geom = 'text', label = 'Jaccard', x = -Inf, y = -Inf, hjust = -0.2, vjust = -1)
+
+#legend2 <- get_legend(pcoa.jaccard.plot)
+
+# plot Bray-Curtis PCoA and Jaccard PCoA side by side
+#p5 <- plot_grid(pcoa.bray.plot + theme(legend.position = 'none'),
+#                pcoa.jaccard.plot + theme(legend.position = 'none'),
+#                legend2, ncol = 3, rel_widths = c(1,1,0.5)
+#                )
+
+#p5
+
+pcoa.bray.plot
+
+pcoa.bray.plot2
+
+```
+
+```{r eval=FALSE, include=FALSE}
+
+dfSitexTroph <- read.csv("sitextroph.csv")
+
+
+
+dfClosedMan <- split(dfSitexTroph, dfSitexTroph$Site)[[1]]
+dfClosedUnman <- split(dfSitexTroph, dfSitexTroph$Site)[[2]]
+dfOpen <- split(dfSitexTroph, dfSitexTroph$Site)[[3]]
+
+dfClosedMan <- melt(dfClosedMan)
+dfClosedUnman <- melt(dfClosedUnman)
+dfOpen <- melt(dfOpen)
+
+pieClosedMan <- ggplot(dfClosedMan, aes(x = "", y = value, fill = variable)) +
+  geom_bar(stat = "identity", width = 1, color="white") +
+  coord_polar("y") +
+  theme_void() +
+  scale_colour_viridis_d(option = "magma", begin = 0.2, end = 0.8) +  # Choose color palette
+  labs(fill = "Category", title = "Closed Canopy Managed Vegetation") +
+  theme(plot.title = element_text(hjust = 0.5, size = 7))
+
+pieClosedUnman <- ggplot(dfClosedUnman, aes(x = "", y = value, fill = variable)) +
+  geom_bar(stat = "identity", width = 1, color="white") +
+  coord_polar("y") +
+  theme_void() +
+  scale_colour_viridis_d(option = "magma", begin = 0.2, end = 0.8) +  # Choose color palette
+  labs(fill = "Category", title = "Closed Canopy Unmanaged Vegetation") +
+  theme(plot.title = element_text(hjust = 0.5, size = 7))
+
+pieOpen <- ggplot(dfOpen, aes(x = "", y = value, fill = variable)) +
+  geom_bar(stat = "identity", width = 1, color="white") +
+  coord_polar("y") +
+  theme_void() +
+  scale_colour_viridis_d(option = "magma", begin = 0.2, end = 0.8) +  # Choose color palette
+  labs(fill = "Category", title = "Open Vegetated Space") +
+  theme(plot.title = element_text(hjust = 0.5, size = 7))
+
+legend2 <- get_legend(pieClosedMan + theme(legend.box.margin = margin(0, 0, 0, 12)))
+
+pie1 <- plot_grid(pieClosedMan + theme(legend.position = "none"),
+                  pieClosedUnman + theme(legend.position = "none"),
+                  pieOpen + theme(legend.position = "none"),
+                  ncol = 3, align = "v")
+
+pie2 <- plot_grid(pie1, legend2, ncol = 2, rel_widths = c(2.5, 0.9))
+
+pie2
+
+```
+
+
+
+
+
